@@ -55,14 +55,15 @@ class CryptCS
             byte encrypted = (byte)((original + keyByte) % 256);
             result[i] = encrypted;
         }
-        
+
         //armazena como texto
-        return Convert.ToBase64String(result);
+        return "CRYPTED::" + Convert.ToBase64String(result);
     }
 
     // para arquivos binarios img, pdf etc
     public byte[] Encrypt(byte[] data)
     {
+
         byte[] result = new byte[data.Length];
 
         for (int i = 0; i < data.Length; i++)
@@ -79,7 +80,10 @@ class CryptCS
     // descriptografa o texto com a chave carregada
     public string Decrypt(string encryptedText)
     {
-        byte[] encryptedBytes = Convert.FromBase64String(encryptedText);
+        // remove o selo antes de converter de base64
+        string base64Part = encryptedText.Substring("CRYPTED::".Length);
+        byte[] encryptedBytes = Convert.FromBase64String(base64Part);
+
         byte[] result = new byte[encryptedBytes.Length];
 
         for (int i = 0; i < encryptedBytes.Length; i++)
@@ -115,11 +119,12 @@ class CryptCS
     {
         CryptCS crypt = new CryptCS();
 
-        Console.WriteLine("=== CriptoSimples ===");
-        Console.WriteLine("Diretório atual: " + Directory.GetCurrentDirectory());
+        Console.WriteLine("=== CryptCS ===");
+        Console.WriteLine($"Diretório atual: {Directory.GetCurrentDirectory()}");
         Console.WriteLine("1 - Criptografar arquivo");
         Console.WriteLine("2 - Descriptografar arquivo");
-        Console.Write("Escolha uma opção: ");
+        Console.Write("Escolha uma opção (1 ou 2): ");
+
         string option = Console.ReadLine();
 
         Console.Write("Digite o caminho do arquivo (ex: arquivo.txt, imagem.jpeg): ");
@@ -128,25 +133,104 @@ class CryptCS
         Console.Write("Digite o caminho do arquivo de chave (.key): ");
         string keyPath = Console.ReadLine();
 
+        // verificação simples contra nulo ou vazio
+        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(keyPath))
+        {
+            Console.WriteLine("Caminho do arquivo ou da chave inválido.");
+            return;
+        }
+
         try
         {
             if (option == "1")
             {
                 // criptografar
-                string originalContent = File.ReadAllText(filePath);
-                crypt.GenerateKey(keyPath);
-                string encrypted = crypt.Encrypt(originalContent);
-                File.WriteAllText(filePath, encrypted); // sobrescreve o original
-                Console.WriteLine("Arquivo criptografado com sucesso!");
+                // verifica se é pasta ou arquivo
+                if (Directory.Exists(filePath))
+                {
+                    crypt.GenerateKey(keyPath);
+
+                    string[] files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
+                    foreach (string file in files)
+                    {
+                        string content = File.ReadAllText(file);
+
+                        if (content.StartsWith("CRYPTED::"))
+                        {
+                            Console.WriteLine($"[IGNORADO] {file} já está criptografado.");
+                            continue;
+                        }
+
+                        string encrypted = crypt.Encrypt(content);
+                        File.WriteAllText(file, encrypted);
+                        Console.WriteLine($"[OK] {file} criptografado.");
+                    }
+
+                    Console.WriteLine("Todos os arquivos da pasta foram criptografados.");
+                }
+                else if (File.Exists(filePath))
+                {
+                    string originalContent = File.ReadAllText(filePath);
+
+                    if (originalContent.StartsWith("CRYPTED::"))
+                    {
+                        Console.WriteLine("O arquivo já está criptografado.");
+                        return;
+                    }
+
+                    crypt.GenerateKey(keyPath);
+                    string encrypted = crypt.Encrypt(originalContent);
+                    File.WriteAllText(filePath, encrypted);
+                    Console.WriteLine("Arquivo criptografado com sucesso!");
+                }
+                else
+                {
+                    Console.WriteLine("Arquivo ou pasta não encontrados.");
+                }
             }
             else if (option == "2")
             {
                 // descriptografar
                 crypt.LoadKey(keyPath);
-                string encryptedContent = File.ReadAllText(filePath);
-                string originalText = crypt.Decrypt(encryptedContent);
-                File.WriteAllText(filePath, originalText);
-                Console.WriteLine("Arquivo descriptografado com sucesso!");
+
+                if (Directory.Exists(filePath))
+                {
+                    string[] files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
+                    foreach (string file in files)
+                    {
+                        string content = File.ReadAllText(file);
+
+                        if (!content.StartsWith("CRYPTED::"))
+                        {
+                            Console.WriteLine($"[IGNORADO] {file} não parece estar criptografado.");
+                            continue;
+                        }
+
+                        string decrypted = crypt.Decrypt(content);
+                        File.WriteAllText(file, decrypted);
+                        Console.WriteLine($"[OK] {file} descriptografado.");
+                    }
+
+                    Console.WriteLine("Todos os arquivos da pasta foram descriptografados.");
+                }
+                else if (File.Exists(filePath))
+                {
+                    string encryptedContent = File.ReadAllText(filePath);
+
+                    if (!encryptedContent.StartsWith("CRYPTED::"))
+                    {
+                        Console.WriteLine("O arquivo não parece estar criptografado.");
+                        return;
+                    }
+
+                    string originalText = crypt.Decrypt(encryptedContent);
+                    File.WriteAllText(filePath, originalText); // sobrescreve o original
+                    Console.WriteLine("Arquivo descriptografado com sucesso!");
+                }
+                else
+                {
+                    Console.WriteLine("Arquivo ou pasta não encontrados.");
+                }
             }
             else
             {
