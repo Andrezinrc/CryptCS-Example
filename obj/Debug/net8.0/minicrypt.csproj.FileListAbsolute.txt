@@ -1,0 +1,14 @@
+/home/user/minicrypt/bin/Debug/net8.0/minicrypt
+/home/user/minicrypt/bin/Debug/net8.0/minicrypt.deps.json
+/home/user/minicrypt/bin/Debug/net8.0/minicrypt.runtimeconfig.json
+/home/user/minicrypt/bin/Debug/net8.0/minicrypt.dll
+/home/user/minicrypt/bin/Debug/net8.0/minicrypt.pdb
+/home/user/minicrypt/obj/Debug/net8.0/minicrypt.GeneratedMSBuildEditorConfig.editorconfig
+/home/user/minicrypt/obj/Debug/net8.0/minicrypt.AssemblyInfoInputs.cache
+/home/user/minicrypt/obj/Debug/net8.0/minicrypt.AssemblyInfo.cs
+/home/user/minicrypt/obj/Debug/net8.0/minicrypt.csproj.CoreCompileInputs.cache
+/home/user/minicrypt/obj/Debug/net8.0/minicrypt.dll
+/home/user/minicrypt/obj/Debug/net8.0/refint/minicrypt.dll
+/home/user/minicrypt/obj/Debug/net8.0/minicrypt.pdb
+/home/user/minicrypt/obj/Debug/net8.0/minicrypt.genruntimeconfig.cache
+/home/user/minicrypt/obj/Debug/net8.0/ref/minicrypt.dll
