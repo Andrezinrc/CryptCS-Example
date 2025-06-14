@@ -7,6 +7,7 @@ class CryptCS
 {
     private List<byte> key;
     private const int KeySize = 32;
+    private const string Assinatura = "CRYPT::KEY";
 
     public CryptCS()
     {
@@ -27,8 +28,9 @@ class CryptCS
         }
 
         //cria uma cópia da chave com a assinatura no início
+        //a assinatura NAO deve ser adicionada a lista key
         List<byte> chaveComAssinatura = new List<byte>();
-        chaveComAssinatura.AddRange(Encoding.UTF8.GetBytes("CRIPTO1"));
+        chaveComAssinatura.AddRange(Encoding.UTF8.GetBytes(Assinatura)); //so na hora de salvar
         chaveComAssinatura.AddRange(key);
         File.WriteAllBytes(path, chaveComAssinatura.ToArray());
     }
@@ -43,17 +45,18 @@ class CryptCS
 
         byte[] rawKey = File.ReadAllBytes(path);
 
-        if (rawKey.Length < 7)
+        if (rawKey.Length < 10)
         {
             throw new Exception("Chave inválida: tamanho insuficiente");
         }
 
         // verifica a assinatura
-        string assinatura = Encoding.UTF8.GetString(rawKey.Take(7).ToArray());
-        if (assinatura != "CRIPTO1")
+        string assinatura = Encoding.UTF8.GetString(rawKey.Take(Assinatura.Length).ToArray());
+        if (assinatura != Assinatura)
             throw new Exception("Chave inválida ou corrompida!");
 
-        key = new List<byte>(rawKey.Skip(7));
+        // agora so a parte da chave é usada nos calculos
+        key = new List<byte>(rawKey.Skip(Assinatura.Length));
 
         //verificacao tamanho da chave
         if (key.Count < 32)
@@ -332,11 +335,11 @@ class CryptCS
                     Console.WriteLine("Arquivo ou pasta não encontrados.");
                 }
             }
-        else
-        {
-            Console.WriteLine("Opção inválida. Digite 1 ou 2.");
+            else
+            {
+                Console.WriteLine("Opção inválida. Digite 1 ou 2.");
+            }
         }
-    }
         catch (Exception ex)
         {
             Console.WriteLine("Erro: " + ex.Message);
