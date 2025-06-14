@@ -7,7 +7,7 @@ Ideal para fins educacionais e aprendizado de manipulação de arquivos e bytes.
 
 - A chave é formada por caracteres aleatórios (ex: letras e números).
 - O tamanho da chave é de 32 bytes.
-- Ao ser salva em disco, ela inclui uma **assinatura especial no início (`CRYPT::KEY`)**.
+- Ao ser salva em disco, ela inclui uma assinatura especial no início: `CRYPT::KEY`.
 - Essa assinatura é usada para validar se o arquivo realmente é uma chave gerada pelo sistema.
 - Ela é salva em um arquivo `.key`, que deve ser usado tanto na criptografia quanto na descriptografia.
 
