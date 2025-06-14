@@ -1,1 +1,0 @@
-{"version":"1.0","name":"MiniCrypt","isWebProject":false,"config":{"version":"1.0","initialCommand":"dotnet new console && cs_open_file Program.cs","runConfigurations":[{"name":"Default","isDefault":true,"command":"dotnet run"}]}}

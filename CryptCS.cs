@@ -26,7 +26,11 @@ class CryptCS
             key.Add((byte)c);
         }
 
-        File.WriteAllBytes(path, key.ToArray());
+        //cria uma cópia da chave com a assinatura no início
+        List<byte> chaveComAssinatura = new List<byte>();
+        chaveComAssinatura.AddRange(Encoding.UTF8.GetBytes("CRIPTO1"));
+        chaveComAssinatura.AddRange(key);
+        File.WriteAllBytes(path, chaveComAssinatura.ToArray());
     }
 
     // carrega chave de um arquivo
@@ -37,7 +41,25 @@ class CryptCS
             throw new FileNotFoundException("Arquivo de chave não encontrado.");
         }
 
-        key = new List<byte>(File.ReadAllBytes(path));
+        byte[] rawKey = File.ReadAllBytes(path);
+
+        if (rawKey.Length < 7)
+        {
+            throw new Exception("Chave inválida: tamanho insuficiente");
+        }
+
+        // verifica a assinatura
+        string assinatura = Encoding.UTF8.GetString(rawKey.Take(7).ToArray());
+        if (assinatura != "CRIPTO1")
+            throw new Exception("Chave inválida ou corrompida!");
+
+        key = new List<byte>(rawKey.Skip(7));
+
+        //verificacao tamanho da chave
+        if (key.Count < 32)
+        {
+            throw new Exception("Chave inválida: tamanho da chave criptográfica insuficiente");
+        }
     }
 
     // criptografa o texto com a chave carregada
@@ -148,7 +170,35 @@ class CryptCS
                 // verifica se é pasta ou arquivo
                 if (Directory.Exists(filePath))
                 {
-                    crypt.GenerateKey(keyPath);
+                    if (File.Exists(keyPath))
+                    {
+                        try
+                        {
+                            crypt.LoadKey(keyPath); // tenta carregar e validar a chave existente
+                            Console.WriteLine("Chave já existe. Usando a chave existente.");
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Chave existente inválida ou corrompida");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        Console.Write("Arquivo de chave não encontrado. Deseja criar uma nova? (S/N): ");
+                        string resposta = Console.ReadLine()?.Trim().ToUpper();
+
+                        if (resposta == "S")
+                        {
+                            crypt.GenerateKey(keyPath); // cria nova chave se não existir
+                            Console.WriteLine("Nova chave gerada.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Operação cancelada");
+                            return;
+                        }
+                    }
 
                     string[] files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
                     foreach (string file in files)
@@ -178,7 +228,35 @@ class CryptCS
                         return;
                     }
 
-                    crypt.GenerateKey(keyPath);
+                    if (File.Exists(keyPath))
+                    {
+                        try
+                        {
+                            crypt.LoadKey(keyPath);
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Chave existente inválida ou corrompida.");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        Console.Write("Arquivo de chave não encontrado. Deseja criar uma nova? (S/N): ");
+                        string resposta = Console.ReadLine()?.Trim().ToUpper();
+
+                        if (resposta == "S")
+                        {
+                            crypt.GenerateKey(keyPath);
+                            Console.WriteLine("Nova chave gerada.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Operação cancelada pelo usuário.");
+                            return;
+                        }
+                    }
+
                     string encrypted = crypt.Encrypt(originalContent);
                     File.WriteAllText(filePath, encrypted);
                     Console.WriteLine("Arquivo criptografado com sucesso!");
@@ -191,10 +269,25 @@ class CryptCS
             else if (option == "2")
             {
                 // descriptografar
-                crypt.LoadKey(keyPath);
-
                 if (Directory.Exists(filePath))
                 {
+                    if (File.Exists(keyPath))
+                    {
+                        try
+                        {
+                            crypt.LoadKey(keyPath);
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Chave existente inválida ou corrompida. Cancelando operação.");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Arquivo de chave não encontrado. Cancelando operação.");
+                        return;
+                    }
                     string[] files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
                     foreach (string file in files)
                     {
@@ -223,6 +316,13 @@ class CryptCS
                         return;
                     }
 
+                    if (!File.Exists(keyPath))
+                    {
+                        Console.WriteLine("Arquivo de chave não encontrado. Não é possível descriptografar.");
+                        return;
+                    }
+
+                    crypt.LoadKey(keyPath);
                     string originalText = crypt.Decrypt(encryptedContent);
                     File.WriteAllText(filePath, originalText); // sobrescreve o original
                     Console.WriteLine("Arquivo descriptografado com sucesso!");
@@ -232,11 +332,11 @@ class CryptCS
                     Console.WriteLine("Arquivo ou pasta não encontrados.");
                 }
             }
-            else
-            {
-                Console.WriteLine("Opção inválida. Digite 1 ou 2.");
-            }
+        else
+        {
+            Console.WriteLine("Opção inválida. Digite 1 ou 2.");
         }
+    }
         catch (Exception ex)
         {
             Console.WriteLine("Erro: " + ex.Message);
