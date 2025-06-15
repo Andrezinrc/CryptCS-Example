@@ -1,3 +1,9 @@
+## Aviso
+
+> Este projeto é apenas para fins **educacionais**.  
+> **Não utilize em arquivos importantes ou sensíveis.**  
+> O método aqui apresentado **não é seguro para uso real em produção**.
+
 # CryptCS-Example
 
 Exemplo simples de criptografia simétrica usando C# puro.  
@@ -29,9 +35,3 @@ Ideal para fins educacionais e aprendizado de manipulação de arquivos e bytes.
   - Resultado: byte original recuperado é `150`
 
 ---
-
-## Aviso
-
-> Este projeto é apenas para fins **educacionais**.  
-> **Não utilize em arquivos importantes ou sensíveis.**  
-> O método aqui apresentado **não é seguro para uso real em produção**.
