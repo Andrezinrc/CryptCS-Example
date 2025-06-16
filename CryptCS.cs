@@ -7,7 +7,9 @@ class CryptCS
 {
     private List<byte> key;
     private const int KeySize = 32;
-    private const string Assinatura = "CRYPT::KEY";
+    private const string KeyHeader = "CRYPT::KEY"; //header da chave
+    private const string TextHeader = "CRYPT::TEXT"; //header arquivo de texto
+    private const string BinaryHeader = "CRYPT::BIN"; //header arquivos binario
 
     public CryptCS()
     {
@@ -29,10 +31,10 @@ class CryptCS
 
         //cria uma cópia da chave com a assinatura no início
         //a assinatura NAO deve ser adicionada a lista key
-        List<byte> chaveComAssinatura = new List<byte>();
-        chaveComAssinatura.AddRange(Encoding.UTF8.GetBytes(Assinatura)); //so na hora de salvar
-        chaveComAssinatura.AddRange(key);
-        File.WriteAllBytes(path, chaveComAssinatura.ToArray());
+        List<byte> keyWithHeader = new List<byte>();
+        keyWithHeader.AddRange(Encoding.UTF8.GetBytes(KeyHeader)); //so na hora de salvar
+        keyWithHeader.AddRange(key);
+        File.WriteAllBytes(path, keyWithHeader.ToArray());
     }
 
     // carrega chave de um arquivo
@@ -45,18 +47,18 @@ class CryptCS
 
         byte[] rawKey = File.ReadAllBytes(path);
 
-        if (rawKey.Length < Assinatura.Length)
+        if (rawKey.Length < KeyHeader.Length)
         {
             throw new Exception("Chave inválida: tamanho insuficiente");
         }
 
         // verifica a assinatura
-        string assinatura = Encoding.UTF8.GetString(rawKey.Take(Assinatura.Length).ToArray());
-        if (assinatura != Assinatura)
-            throw new Exception("Chave inválida ou corrompida!");
+        string header = Encoding.UTF8.GetString(rawKey.Take(KeyHeader.Length).ToArray());
+        if (header != KeyHeader)
+            throw new Exception("Invalid or corrupted key!");
 
         // agora so a parte da chave é usada nos calculos
-        key = new List<byte>(rawKey.Skip(Assinatura.Length));
+        key = new List<byte>(rawKey.Skip(KeyHeader.Length));
 
         //verificacao tamanho da chave
         if (key.Count < 32)
@@ -96,7 +98,7 @@ class CryptCS
         }
 
         //armazena como texto
-        return "CRYPTED::" + Convert.ToBase64String(result);
+        return TextHeader + Convert.ToBase64String(result);
     }
 
     // para arquivos binarios img, pdf etc
@@ -117,20 +119,20 @@ class CryptCS
             result[i] = encrypted;
         }
 
-        byte[] assinatura = Encoding.UTF8.GetBytes("CRYPT::BIN");
-        byte[] finalData = new byte[assinatura.Length + result.Length];
+        byte[] header = Encoding.UTF8.GetBytes(BinaryHeader);
+        byte[] dataWithHeader = new byte[header.Length + result.Length];
 
-        Buffer.BlockCopy(assinatura, 0, finalData, 0, assinatura.Length);
-        Buffer.BlockCopy(result, 0, finalData, assinatura.Length, result.Length);
+        Buffer.BlockCopy(header, 0, dataWithHeader, 0, header.Length);
+        Buffer.BlockCopy(result, 0, dataWithHeader, header.Length, result.Length);
 
-        return finalData; //mantem como bytes
+        return dataWithHeader; //mantem como bytes
     }
 
     // descriptografa o texto com a chave carregada
     public string Decrypt(string encryptedText)
     {
         // remove o selo antes de converter de base64
-        string base64Part = encryptedText.Substring("CRYPTED::".Length);
+        string base64Part = encryptedText.Substring(TextHeader.Length);
         byte[] encryptedBytes = Convert.FromBase64String(base64Part);
 
         byte[] result = new byte[encryptedBytes.Length];
@@ -155,44 +157,44 @@ class CryptCS
     // para arquivos binarios pdf, img etc
     public byte[] Decrypt(byte[] encryptedData)
     {
-        byte[] assinatura = Encoding.UTF8.GetBytes("CRYPT::BIN");
+        byte[] header = Encoding.UTF8.GetBytes(BinaryHeader);
 
         //verifica se a chave esta carregada
         if (key.Count == 0)
             throw new Exception("Chave vazia: carregamento falhou?");
 
-        if (encryptedData.Length < assinatura.Length)
+        if (encryptedData.Length < header.Length)
             throw new Exception("Arquivo muito pequeno para conter dados criptografados.");
 
         // modificacao crítica - mantem verificacao
-        bool assinaturaValida = true;
-        for (int i = 0; i < assinatura.Length; i++)
+        bool isHeaderValid = true;
+        for (int i = 0; i < header.Length; i++)
         {
-            if (i >= encryptedData.Length || encryptedData[i] != assinatura[i])
+            if (i >= encryptedData.Length || encryptedData[i] != header[i])
             {
-                assinaturaValida = false;
+                isHeaderValid = false;
                 break;
             }
         }
 
-        byte[] dataSemAssinatura;
-        
-        if (assinaturaValida)
+        byte[] dataWithoutHeader;
+
+        if (isHeaderValid)
         {
             // remove a assinatura do início do arquivo, preservando apenas os dados
-            dataSemAssinatura = encryptedData.Skip(assinatura.Length).ToArray();
+            dataWithoutHeader = encryptedData.Skip(header.Length).ToArray();
         }
         else
         {
             // se nao tiver assinatura, assume que os dados já estão sem assinatura
-            dataSemAssinatura = encryptedData;
+            dataWithoutHeader = encryptedData;
         }
 
-        byte[] result = new byte[dataSemAssinatura.Length];
+        byte[] result = new byte[dataWithoutHeader.Length];
 
-        for (int i = 0; i < dataSemAssinatura.Length; i++)
+        for (int i = 0; i < dataWithoutHeader.Length; i++)
         {
-            byte encrypted = dataSemAssinatura[i];
+            byte encrypted = dataWithoutHeader[i];
             byte keyByte = key[i % key.Count];
 
             // reversao mantendo os valores entre 0-255
@@ -253,9 +255,9 @@ class CryptCS
                     else
                     {
                         Console.Write("Arquivo de chave não encontrado. Deseja criar uma nova? (S/N): ");
-                        string resposta = Console.ReadLine()?.Trim().ToUpper();
+                        string response = Console.ReadLine()?.Trim().ToUpper();
 
-                        if (resposta == "S")
+                        if (response == "S")
                         {
                             crypt.GenerateKey(keyPath); // cria nova chave se não existir
                             Console.WriteLine("Nova chave gerada.");
@@ -277,11 +279,11 @@ class CryptCS
                             byte[] fileBytes = File.ReadAllBytes(file);
 
                             //verifica se já está criptografado
-                            byte[] assinatura = Encoding.UTF8.GetBytes("CRYPT::BIN");
-                            bool jaCriptografado = fileBytes.Length >= assinatura.Length &&
-                                fileBytes.Take(assinatura.Length).SequenceEqual(assinatura);
+                            byte[] header = Encoding.UTF8.GetBytes(BinaryHeader);
+                            bool alreadyEncrypted = fileBytes.Length >= header.Length &&
+                                fileBytes.Take(header.Length).SequenceEqual(header);
 
-                            if (jaCriptografado)
+                            if (alreadyEncrypted)
                             {
                                 Console.WriteLine($"[IGNORADO] {file} já está criptografado (binário).");
                                 continue;
@@ -295,7 +297,7 @@ class CryptCS
                         {
                             string content = File.ReadAllText(file);
 
-                            if (content.StartsWith("CRYPTED::"))
+                            if (content.StartsWith(TextHeader))
                             {
                                 Console.WriteLine($"[IGNORADO] {file} já está criptografado (texto).");
                                 continue;
@@ -324,7 +326,7 @@ class CryptCS
                     {
                         string originalContent = File.ReadAllText(filePath);
 
-                        if (originalContent.StartsWith("CRYPTED::"))
+                        if (originalContent.StartsWith(TextHeader))
                         {
                             Console.WriteLine("O arquivo já está criptografado.");
                             return;
@@ -345,9 +347,9 @@ class CryptCS
                         else
                         {
                             Console.Write("Arquivo de chave não encontrado. Deseja criar uma nova? (S/N): ");
-                            string resposta = Console.ReadLine()?.Trim().ToUpper();
+                            string response = Console.ReadLine()?.Trim().ToUpper();
 
-                            if (resposta == "S")
+                            if (response == "S")
                             {
                                 crypt.GenerateKey(keyPath);
                                 Console.WriteLine("Nova chave gerada.");
@@ -399,22 +401,22 @@ class CryptCS
                         if (isBinary)
                         {
                             byte[] fileBytes = File.ReadAllBytes(file);
-                            byte[] assinatura = Encoding.UTF8.GetBytes("CRYPT::BIN");
+                            byte[] header = Encoding.UTF8.GetBytes(BinaryHeader);
 
-                            // verifica se o arquivo binário tem a assinatura
-                            bool contemAssinatura = fileBytes.Length >= assinatura.Length &&
-                                fileBytes.Take(assinatura.Length).SequenceEqual(assinatura);
+                            // verifica se o arquivo binário tem a header
+                            bool hasHeader = fileBytes.Length >= header.Length &&
+                                fileBytes.Take(header.Length).SequenceEqual(header);
 
-                            if (!contemAssinatura)
+                            if (!hasHeader)
                             {
                                 Console.WriteLine($"[IGNORADO] {file} não parece estar criptografado (binário).");
                                 continue;
                             }
 
-                            // remove a assinatura antes de descriptografar
-                            byte[] conteudoReal = fileBytes.Skip(assinatura.Length).ToArray();
+                            // remove a header antes de descriptografar
+                            byte[] realContent = fileBytes.Skip(header.Length).ToArray();
 
-                            byte[] decryptedBytes = crypt.Decrypt(conteudoReal);
+                            byte[] decryptedBytes = crypt.Decrypt(realContent);
                             File.WriteAllBytes(file, decryptedBytes);
                             Console.WriteLine($"[OK] {file} descriptografado (binário).");
                         }
@@ -422,7 +424,7 @@ class CryptCS
                         {
                             string content = File.ReadAllText(file);
 
-                            if (!content.StartsWith("CRYPTED::"))
+                            if (!content.StartsWith(TextHeader))
                             {
                                 Console.WriteLine($"[IGNORADO] {file} não parece estar criptografado.");
                                 continue;
@@ -443,17 +445,17 @@ class CryptCS
                     if (isBinary)
                     {
                         byte[] encryptedBytes = File.ReadAllBytes(filePath);
-                        byte[] assinatura = Encoding.UTF8.GetBytes("CRYPT::BIN");
+                        byte[] header = Encoding.UTF8.GetBytes(BinaryHeader);
 
-                        // verifica se tem a assinatura
-                        if (encryptedBytes.Length >= assinatura.Length && 
-                        encryptedBytes.Take(assinatura.Length).SequenceEqual(assinatura))
+                        // verifica se tem a header
+                        if (encryptedBytes.Length >= header.Length && 
+                            encryptedBytes.Take(header.Length).SequenceEqual(header))
                         {
                             try
                             {
-                                // remove a assinatura antes de descriptografar
-                                byte[] dadosSemAssinatura = encryptedBytes.Skip(assinatura.Length).ToArray();
-                                byte[] decryptedBytes = crypt.Decrypt(dadosSemAssinatura);
+                                // remove a header antes de descriptografar
+                                byte[] contentWithoutHeader = encryptedBytes.Skip(header.Length).ToArray();
+                                byte[] decryptedBytes = crypt.Decrypt(contentWithoutHeader);
                                 File.WriteAllBytes(filePath, decryptedBytes);
                                 Console.WriteLine("Arquivo binário descriptografado com sucesso!");
                             }
@@ -464,14 +466,14 @@ class CryptCS
                         }
                         else
                         {
-                            Console.WriteLine("Assinatura inválida: o arquivo não está criptografado ou foi corrompido.");
+                            Console.WriteLine("Header inválida: o arquivo não está criptografado ou foi corrompido.");
                         }
                     }
                     else
                     {
                         string encryptedContent = File.ReadAllText(filePath);
 
-                        if (!encryptedContent.StartsWith("CRYPTED::"))
+                        if (!encryptedContent.StartsWith(TextHeader))
                         {
                             Console.WriteLine("O arquivo não parece estar criptografado.");
                             return;
