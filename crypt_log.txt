@@ -1,0 +1,17 @@
+[2025-06-17 00:51:19] [INFO] Todos os arquivos da pasta foram descriptografados.
+[2025-06-17 00:51:19] [INFO] [OK] Testes/sub/imagem_teste.png descriptografado (binário).
+[2025-06-17 00:51:19] [INFO] [OK] Testes/sub/outro.txt descriptografado (texto).
+[2025-06-17 00:51:19] [INFO] [OK] Testes/arquivo2.txt descriptografado (texto).
+[2025-06-17 00:51:19] [INFO] [OK] Testes/arquivo1.txt descriptografado (texto).
+[2025-06-17 00:50:55] [INFO] Todos os arquivos da pasta foram criptografados.
+[2025-06-17 00:50:55] [INFO] [IGNORADO] Testes/sub/imagem_teste.png já está criptografado (binário).
+[2025-06-17 00:50:55] [INFO] [IGNORADO] Testes/sub/outro.txt já está criptografado (texto).
+[2025-06-17 00:50:55] [INFO] [IGNORADO] Testes/arquivo2.txt já está criptografado (texto).
+[2025-06-17 00:50:55] [INFO] [IGNORADO] Testes/arquivo1.txt já está criptografado (texto).
+[2025-06-17 00:50:55] [INFO] Chave já existe. Usando a chave existente.
+[2025-06-17 00:49:01] [INFO] Todos os arquivos da pasta foram criptografados.
+[2025-06-17 00:49:01] [INFO] [OK] Testes/sub/imagem_teste.png criptografado (binário).
+[2025-06-17 00:49:01] [INFO] [OK] Testes/sub/outro.txt criptografado (texto).
+[2025-06-17 00:49:01] [INFO] [OK] Testes/arquivo2.txt criptografado (texto).
+[2025-06-17 00:49:01] [INFO] [OK] Testes/arquivo1.txt criptografado (texto).
+[2025-06-17 00:49:01] [INFO] Nova chave gerada.

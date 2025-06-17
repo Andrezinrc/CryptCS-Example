@@ -7,28 +7,66 @@ namespace FileCryptor
 {
     class Program
     {
+        private static readonly string logFilePath = "crypt_log.txt";
+        private const string Info = "INFO";
+        private const string Error = "ERROR";
+
+        //loga mensagens no arquivo, com as mais novas no topo
+        private static void Log(string type, string message)
+        {
+            string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{type}] {message}";
+
+            // escreve no arquivo, colocando o novo log no topo
+            try
+            {
+                string existingContent = string.Empty;
+
+                // se o arquivo existe, le todo o conteudo atual
+                if (File.Exists(logFilePath))
+                {
+                    existingContent = File.ReadAllText(logFilePath);
+                }
+
+                //escreve o novo log seguido do conteúdo existente
+                File.WriteAllText(logFilePath, logMessage + Environment.NewLine + existingContent);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOG ERROR] Failed to write log: {ex.Message}");
+            }
+        }
+
         public static void Main()
         {
             CryptCS crypt = new CryptCS();
 
-            Console.WriteLine("=== CryptCS ===");
-            Console.WriteLine($"Diretório atual: {Directory.GetCurrentDirectory()}");
-            Console.WriteLine("1 - Criptografar arquivo");
-            Console.WriteLine("2 - Descriptografar arquivo");
-            Console.Write("Escolha uma opção (1 ou 2): ");
+            string title = "=== CryptCS ===";
+            string currentDir = $"Diretório atual: {Directory.GetCurrentDirectory()}";
+            string option1 = "1 - Criptografar arquivo";
+            string option2 = "2 - Descriptografar arquivo";
+            string chooseOption = "Escolha uma opção (1 ou 2): ";
+
+            Console.WriteLine(title);
+            Console.WriteLine(currentDir);
+            Console.WriteLine(option1);
+            Console.WriteLine(option2);
+            Console.Write(chooseOption);
 
             string option = Console.ReadLine();
 
-            Console.Write("Digite o caminho do arquivo (ex: arquivo.txt, imagem.jpeg): ");
+            string filePathPrompt = "Digite o caminho do arquivo (ex: arquivo.txt, imagem.jpeg): ";
+            Console.Write(filePathPrompt);
             string filePath = Console.ReadLine();
 
-            Console.Write("Digite o caminho do arquivo de chave (.key): ");
+            string keyPathPrompt = "Digite o caminho do arquivo de chave (.key): ";
+            Console.Write(keyPathPrompt);
             string keyPath = Console.ReadLine();
 
             // verificação simples contra nulo ou vazio
             if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(keyPath))
             {
-                Console.WriteLine("Caminho do arquivo ou da chave inválido.");
+                string invalidPathMsg = "Caminho do arquivo ou da chave inválido.";
+                Console.WriteLine(invalidPathMsg);
                 return;
             }
 
@@ -44,28 +82,36 @@ namespace FileCryptor
                         {
                             try
                             {
-                                crypt.LoadKey(keyPath); // tenta carregar e validar a chave existente
-                                Console.WriteLine("Chave já existe. Usando a chave existente.");
+                                crypt.LoadKey(keyPath);
+                                string msg = "Chave já existe. Usando a chave existente.";
+                                Console.WriteLine(msg);
+                                Log(Info, msg);
                             }
-                            catch
+                            catch (Exception ex)
                             {
-                                Console.WriteLine("Chave existente inválida ou corrompida");
-                                return;
+                                string errMsg = "Erro ao carregar a chave: " + ex.Message;
+                                Console.WriteLine(errMsg);
+                                Log(Error, errMsg);
                             }
                         }
                         else
                         {
-                            Console.Write("Arquivo de chave não encontrado. Deseja criar uma nova? (S/N): ");
+                            string keyNotFoundMsg = "Arquivo de chave não encontrado. Deseja criar uma nova? (S/N): ";
+                            Console.Write(keyNotFoundMsg);
                             string response = Console.ReadLine()?.Trim().ToUpper();
 
                             if (response == "S")
                             {
                                 crypt.GenerateKey(keyPath); // cria nova chave se não existir
-                                Console.WriteLine("Nova chave gerada.");
+                                string newKeyMsg = "Nova chave gerada.";
+                                Console.WriteLine(newKeyMsg);
+                                Log(Info, newKeyMsg);
                             }
                             else
                             {
-                                Console.WriteLine("Operação cancelada");
+                                string operationCancelled = "Operação cancelada";
+                                Console.WriteLine(operationCancelled);
+                                Log(Info, operationCancelled);
                                 return;
                             }
                         }
@@ -86,13 +132,17 @@ namespace FileCryptor
 
                                 if (alreadyEncrypted)
                                 {
-                                    Console.WriteLine($"[IGNORADO] {file} já está criptografado (binário).");
+                                    string ignoredBinaryMsg = $"[IGNORADO] {file} já está criptografado (binário).";
+                                    Console.WriteLine(ignoredBinaryMsg);
+                                    Log(Info, ignoredBinaryMsg);
                                     continue;
                                 }
 
                                 byte[] encryptedBytes = crypt.Encrypt(fileBytes);
                                 File.WriteAllBytes(file, encryptedBytes);
-                                Console.WriteLine($"[OK] {file} criptografado (binário).");
+                                string okBinaryMsg = $"[OK] {file} criptografado (binário).";
+                                Console.WriteLine(okBinaryMsg);
+                                Log(Info, okBinaryMsg);
                             }
                             else
                             {
@@ -100,17 +150,23 @@ namespace FileCryptor
 
                                 if (content.StartsWith(CryptCS.TextHeader))
                                 {
-                                    Console.WriteLine($"[IGNORADO] {file} já está criptografado (texto).");
+                                    string ignoredTextMsg = $"[IGNORADO] {file} já está criptografado (texto).";
+                                    Console.WriteLine(ignoredTextMsg);
+                                    Log(Info, ignoredTextMsg);
                                     continue;
                                 }
 
                                 string encrypted = crypt.Encrypt(content);
                                 File.WriteAllText(file, encrypted);
-                                Console.WriteLine($"[OK] {file} criptografado (texto).");
+                                string okTextMsg = $"[OK] {file} criptografado (texto).";
+                                Console.WriteLine(okTextMsg);
+                                Log(Info, okTextMsg);
                             }
                         }
 
-                        Console.WriteLine("Todos os arquivos da pasta foram criptografados.");
+                        string allFilesEncrypted = "Todos os arquivos da pasta foram criptografados.";
+                        Console.WriteLine(allFilesEncrypted);
+                        Log(Info, allFilesEncrypted);
                     }
                     else if (File.Exists(filePath))
                     {
@@ -121,7 +177,9 @@ namespace FileCryptor
                             byte[] fileBytes = File.ReadAllBytes(filePath);
                             byte[] encryptedBytes = crypt.Encrypt(fileBytes);
                             File.WriteAllBytes(filePath, encryptedBytes);
-                            Console.WriteLine("Arquivo binário criptografado com sucesso!");
+                            string binarySuccess = "Arquivo binário criptografado com sucesso!";
+                            Console.WriteLine(binarySuccess);
+                            Log(Info, binarySuccess);
                         }
                         else
                         {
@@ -129,7 +187,9 @@ namespace FileCryptor
 
                             if (originalContent.StartsWith(CryptCS.TextHeader))
                             {
-                                Console.WriteLine("O arquivo já está criptografado.");
+                                string alreadyEncrypted = "O arquivo já está criptografado.";
+                                Console.WriteLine(alreadyEncrypted);
+                                Log(Info, alreadyEncrypted);
                                 return;
                             }
 
@@ -141,35 +201,46 @@ namespace FileCryptor
                                 }
                                 catch
                                 {
-                                    Console.WriteLine("Chave existente inválida ou corrompida.");
+                                    string invalidKey = "Chave existente inválida ou corrompida.";
+                                    Console.WriteLine(invalidKey);
+                                    Log(Error, invalidKey);
                                     return;
                                 }
                             }
                             else
                             {
-                                Console.Write("Arquivo de chave não encontrado. Deseja criar uma nova? (S/N): ");
+                                string keyNotFound = "Arquivo de chave não encontrado. Deseja criar uma nova? (S/N): ";
+                                Console.Write(keyNotFound);
                                 string response = Console.ReadLine()?.Trim().ToUpper();
 
                                 if (response == "S")
                                 {
                                     crypt.GenerateKey(keyPath);
-                                    Console.WriteLine("Nova chave gerada.");
+                                    string newKeyCreated = "Nova chave gerada.";
+                                    Console.WriteLine(newKeyCreated);
+                                    Log(Info, newKeyCreated);
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Operação cancelada pelo usuário.");
+                                    string userCancelled = "Operação cancelada pelo usuário.";
+                                    Console.WriteLine(userCancelled);
+                                    Log(Info, userCancelled);
                                     return;
                                 }
                             }
 
                             string encrypted = crypt.Encrypt(originalContent);
                             File.WriteAllText(filePath, encrypted);
-                            Console.WriteLine("Arquivo de texto criptografado com sucesso!");
+                            string textSuccess = "Arquivo de texto criptografado com sucesso!";
+                            Console.WriteLine(textSuccess);
+                            Log(Info, textSuccess);
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Arquivo ou pasta não encontrados.");
+                        string notFound = "Arquivo ou pasta não encontrados.";
+                        Console.WriteLine(notFound);
+                        Log(Error, notFound);
                     }
                 }
                 else if (option == "2")
@@ -185,13 +256,17 @@ namespace FileCryptor
                             }
                             catch
                             {
-                                Console.WriteLine("Chave existente inválida ou corrompida. Cancelando operação.");
+                                string invalidKey = "Chave existente inválida ou corrompida. Cancelando operação.";
+                                Console.WriteLine(invalidKey);
+                                Log(Error, invalidKey);
                                 return;
                             }
                         }
                         else
                         {
-                            Console.WriteLine("Arquivo de chave não encontrado. Cancelando operação.");
+                            string keyNotFound = "Arquivo de chave não encontrado. Cancelando operação.";
+                            Console.WriteLine(keyNotFound);
+                            Log(Error, keyNotFound);
                             return;
                         }
                         string[] files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
@@ -210,7 +285,9 @@ namespace FileCryptor
 
                                 if (!hasHeader)
                                 {
-                                    Console.WriteLine($"[IGNORADO] {file} não parece estar criptografado (binário).");
+                                    string ignoredBinary = $"[IGNORADO] {file} não parece estar criptografado (binário).";
+                                    Console.WriteLine(ignoredBinary);
+                                    Log(Info, ignoredBinary);
                                     continue;
                                 }
 
@@ -219,7 +296,9 @@ namespace FileCryptor
 
                                 byte[] decryptedBytes = crypt.Decrypt(realContent);
                                 File.WriteAllBytes(file, decryptedBytes);
-                                Console.WriteLine($"[OK] {file} descriptografado (binário).");
+                                string okBinary = $"[OK] {file} descriptografado (binário).";
+                                Console.WriteLine(okBinary);
+                                Log(Info, okBinary);
                             }
                             else
                             {
@@ -227,17 +306,23 @@ namespace FileCryptor
 
                                 if (!content.StartsWith(CryptCS.TextHeader))
                                 {
-                                    Console.WriteLine($"[IGNORADO] {file} não parece estar criptografado.");
+                                    string ignoredText = $"[IGNORADO] {file} não parece estar criptografado.";
+                                    Console.WriteLine(ignoredText);
+                                    Log(Info, ignoredText);
                                     continue;
                                 }
 
                                 string decrypted = crypt.Decrypt(content);
                                 File.WriteAllText(file, decrypted);
-                                Console.WriteLine($"[OK] {file} descriptografado (texto).");
+                                string okText = $"[OK] {file} descriptografado (texto).";
+                                Console.WriteLine(okText);
+                                Log(Info, okText);
                             }
                         }
 
-                        Console.WriteLine("Todos os arquivos da pasta foram descriptografados.");
+                        string allFilesDecrypted = "Todos os arquivos da pasta foram descriptografados.";
+                        Console.WriteLine(allFilesDecrypted);
+                        Log(Info, allFilesDecrypted);
                     }
                     else if (File.Exists(filePath))
                     {
@@ -258,16 +343,22 @@ namespace FileCryptor
                                     byte[] contentWithoutHeader = encryptedBytes.Skip(header.Length).ToArray();
                                     byte[] decryptedBytes = crypt.Decrypt(contentWithoutHeader);
                                     File.WriteAllBytes(filePath, decryptedBytes);
-                                    Console.WriteLine("Arquivo binário descriptografado com sucesso!");
+                                    string binarySuccess = "Arquivo binário descriptografado com sucesso!";
+                                    Console.WriteLine(binarySuccess);
+                                    Log(Info, binarySuccess);
                                 }
                                 catch (Exception ex)
                                 {
-                                    Console.WriteLine($"Erro ao descriptografar: {ex.Message}");
+                                    string decryptError = $"Erro ao descriptografar: {ex.Message}";
+                                    Console.WriteLine(decryptError);
+                                    Log(Error, decryptError);
                                 }
                             }
                             else
                             {
-                                Console.WriteLine("Header inválida: o arquivo não está criptografado ou foi corrompido.");
+                                string invalidHeader = "Header inválida: o arquivo não está criptografado ou foi corrompido.";
+                                Console.WriteLine(invalidHeader);
+                                Log(Error, invalidHeader);
                             }
                         }
                         else
@@ -276,35 +367,47 @@ namespace FileCryptor
 
                             if (!encryptedContent.StartsWith(CryptCS.TextHeader))
                             {
-                                Console.WriteLine("O arquivo não parece estar criptografado.");
+                                string notEncrypted = "O arquivo não parece estar criptografado.";
+                                Console.WriteLine(notEncrypted);
+                                Log(Info, notEncrypted);
                                 return;
                             }
 
                             if (!File.Exists(keyPath))
                             {
-                                Console.WriteLine("Arquivo de chave não encontrado. Não é possível descriptografar.");
+                                string keyMissing = "Arquivo de chave não encontrado. Não é possível descriptografar.";
+                                Console.WriteLine(keyMissing);
+                                Log(Error, keyMissing);
                                 return;
                             }
 
                             crypt.LoadKey(keyPath);
                             string originalText = crypt.Decrypt(encryptedContent);
                             File.WriteAllText(filePath, originalText);
-                            Console.WriteLine("Arquivo de texto descriptografado com sucesso!");
+                            string textSuccess = "Arquivo de texto descriptografado com sucesso!";
+                            Console.WriteLine(textSuccess);
+                            Log(Info, textSuccess);
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Arquivo ou pasta não encontrados.");
+                        string notFound = "Arquivo ou pasta não encontrados.";
+                        Console.WriteLine(notFound);
+                        Log(Error, notFound);
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Opção inválida. Digite 1 ou 2.");
+                    string invalidOption = "Opção inválida. Digite 1 ou 2.";
+                    Console.WriteLine(invalidOption);
+                    Log(Error, invalidOption);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Erro: " + ex.Message);
+                string errorMsg = "Erro: " + ex.Message;
+                Console.WriteLine(errorMsg);
+                Log(Error, errorMsg);
             }
         }
     }
